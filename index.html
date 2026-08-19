@@ -13,22 +13,58 @@ body{
     padding:20px;
 }
 
-.result-row{
-    display:flex;
-    justify-content:space-between;
-    align-items:center;
-    gap:10px;
-    padding:10px;
-    margin-bottom:8px;
-    background:#fff;
-    border:1px solid #ddd;
-    border-radius:6px;
+.result-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px;
+    margin-bottom: 8px;
+    background: white;
+    border: 1px solid #dee2e6;
+    border-radius: 6px;
 }
 
-.medication{
-    flex:1;
-    word-break:break-word;
+.edit-area {
+    resize: none;
+    overflow: hidden;
+    min-height: 32px;
+    width: 100%;
 }
+
+.medication-container {
+    align-items: flex-start !important;
+}
+
+  
+.delete-btn {
+    flex-shrink: 0;
+}
+
+.medication-container {
+    flex-grow: 1;
+    min-width: 0;
+}
+
+.medication {
+    white-space: normal;
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+    flex: 1;
+}
+
+.medication:hover {
+    background-color: #f8f9fa;
+}
+
+.tick {
+    width: 24px;
+    text-align: center;
+}
+
+.btn-group {
+    white-space: nowrap;
+}
+
 </style>
 </head>
 <body>
@@ -59,7 +95,7 @@ body{
 <div class="container">
     <h2 class="mb-3">Medication Formatter</h2>
 
-    <textarea id="rawData" class="form-control mb-3" rows="15"
+    <textarea id="rawData" class="form-control mb-3" rows="7"
         placeholder="Paste medication data here"></textarea>
 
     <button class="btn btn-primary mb-3" onclick="formatMeds()">
@@ -175,102 +211,108 @@ function formatMeds(){
     const row = document.createElement("div");
     row.className = "result-row";
 
-    row.innerHTML = `
-        <div class="d-flex align-items-center flex-grow-1">
-            <span class="tick me-2"
-                  style="display:none;color:#198754;font-size:1.4rem;">
-                ✅
-            </span>
+row.innerHTML = `
+    <button class="btn btn-danger btn-sm delete-btn me-2">
+        Delete
+    </button>
 
-            <div class="medication">${med}</div>
+    <div class="d-flex align-items-center flex-grow-1 medication-container">
+
+        <span class="tick me-2"
+              style="display:none;color:#198754;font-size:1.4rem;">
+            ✅
+        </span>
+
+        <div class="medication flex-grow-1"
+             style="cursor:pointer;"
+             title="Click to edit">
+            ${med}
         </div>
 
-        <div class="btn-group">
-            <button class="btn btn-warning btn-sm edit-btn">
-                Edit
-            </button>
+    </div>
 
-            <button class="btn btn-success btn-sm copy-btn">
-                Copy
-            </button>
-        </div>
-    `;
+    <div class="ms-2">
+
+        <button class="btn btn-primary btn-sm confirm-btn d-none">
+            Confirm
+        </button>
+
+        <button class="btn btn-success btn-sm copy-btn">
+            Copy
+        </button>
+
+    </div>
+`;
 
     const medicationDiv = row.querySelector(".medication");
+    const confirmBtn = row.querySelector(".confirm-btn");
     const copyBtn = row.querySelector(".copy-btn");
-    const editBtn = row.querySelector(".edit-btn");
+    const deleteBtn = row.querySelector(".delete-btn");
     const tick = row.querySelector(".tick");
 
     let editing = false;
 
-    // COPY BUTTON
-    copyBtn.addEventListener("click", () => {
+    // CLICK TEXT TO EDIT
+    medicationDiv.addEventListener("click", () => {
 
-        let currentText;
+        if (editing) return;
 
-        if(editing){
-            currentText = medicationDiv.querySelector("input").value;
-        } else {
-            currentText = medicationDiv.textContent;
-        }
-
-        navigator.clipboard.writeText(currentText);
-
-        tick.style.display = "inline";
-
-        const original = copyBtn.innerText;
-        copyBtn.innerText = "Copied";
-
-        setTimeout(() => {
-            copyBtn.innerText = original;
-        }, 1000);
-    });
-
-    // EDIT / CONFIRM BUTTON
-    editBtn.addEventListener("click", () => {
-
-    // Reset tick when editing starts
-    tick.style.display = "none";
-
-    if (!editing) {
+        tick.style.display = "none";
 
         const currentText = medicationDiv.textContent.trim();
 
+
         medicationDiv.innerHTML = `
-            <input
-                type="text"
-                class="form-control form-control-sm"
-                value="${currentText.replace(/"/g, '&quot;')}"
-            >
-        `;
+    <textarea
+        class="form-control form-control-sm edit-area"
+        rows="3">${currentText.replace(/"/g,'&quot;')}</textarea>
+`;
 
-        editBtn.textContent = "Confirm";
-        editBtn.classList.remove("btn-warning");
-        editBtn.classList.add("btn-primary");
-
-        // Hide Copy button while editing
-        copyBtn.style.display = "none";
+        copyBtn.classList.add("d-none");
+        confirmBtn.classList.remove("d-none");
 
         editing = true;
+    });
 
-    } else {
+    // CONFIRM EDIT
+    confirmBtn.addEventListener("click", () => {
 
-        const newText = medicationDiv.querySelector("input").value;
+        const newText =
+            medicationDiv.querySelector("textarea").value.trim();
 
         medicationDiv.textContent = newText;
 
-        editBtn.textContent = "Edit";
-        editBtn.classList.remove("btn-primary");
-        editBtn.classList.add("btn-warning");
-
-        // Show Copy button again
-        copyBtn.style.display = "inline-block";
+        confirmBtn.classList.add("d-none");
+        copyBtn.classList.remove("d-none");
 
         editing = false;
-    }
+    });
 
-});
-``
+    // COPY
+    copyBtn.addEventListener("click", () => {
+
+        const text = medicationDiv.textContent.trim();
+
+        navigator.clipboard.writeText(text);
+
+        tick.style.display = "inline";
+
+        const original = copyBtn.textContent;
+
+        copyBtn.textContent = "Copied";
+
+        setTimeout(() => {
+            copyBtn.textContent = original;
+        }, 1000);
+
+    });
+
+    // DELETE
+    deleteBtn.addEventListener("click", () => {
+
+        row.remove();
+
+    });
 
     output.appendChild(row);
 
