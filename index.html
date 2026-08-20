@@ -13,6 +13,8 @@ body{
     padding:20px;
 }
 
+
+
 .result-row {
     display: flex;
     align-items: center;
@@ -87,10 +89,61 @@ body{
 
         </div>
     </div>
+</div>
+
+
+  <div id="appContainer" style="display:none;">
+
+      <div class="btn-group mb-3 w-100">
+
+    <button id="gpTab"
+            class="btn btn-success"
+            onclick="showPage('gp')">
+        From Real Time GP Record
+    </button>
+
+    <button id="summaryTab"
+            class="btn btn-primary"
+            onclick="showPage('summary')">
+        From Medication Summary
+    </button>
+</div>
+    <!-- Real Time GP Record formatter -->
+    <div id="gpPage">
+
+    <h3 class="mb-3">From Real Time GP Record</h3>
+
+    <div class="mb-3">
+        <label class="form-label fw-bold">
+            Acute Medication
+        </label>
+
+        <textarea id="acuteData"
+                  class="form-control"
+                  rows="3"></textarea>
+    </div>
+
+    <div class="mb-3">
+        <label class="form-label fw-bold">
+            Current Repeat Medication
+        </label>
+
+        <textarea id="repeatData"
+                  class="form-control"
+                  rows="3"></textarea>
+    </div>
+
+    <button class="btn btn-success mb-3"
+            onclick="formatGPData()">
+        Format Both Boxes
+    </button>
+
+    <div id="gpOutput"></div>
 
 </div>
 
-  <div id="appContainer" style="display:none;">
+<div id="summaryPage" style="display:none;">
+    <!-- Existing Medication Summary formatter -->
   
 <div class="container">
     <h2 class="mb-3">Medication Formatter</h2>
@@ -105,16 +158,60 @@ body{
     <div id="output"></div>
 </div>
     </div>
+</div>
+
+  
     
 <script>
 
 function confirmSafety() {
 
-    document.getElementById("confirmContainer").style.display = "none";
-    document.getElementById("appContainer").style.display = "block";
+    const confirmContainer =
+        document.getElementById("confirmContainer");
 
+    const appContainer =
+        document.getElementById("appContainer");
+
+    console.log("confirmContainer =", confirmContainer);
+    console.log("appContainer =", appContainer);
+
+    if (confirmContainer)
+        confirmContainer.style.display = "none";
+
+    if (appContainer)
+        appContainer.style.display = "block";
+
+    showPage("gp");
 }
 
+function showPage(page){
+
+    const gpPage =
+        document.getElementById("gpPage");
+
+    const summaryPage =
+        document.getElementById("summaryPage");
+
+    console.log("gpPage =", gpPage);
+    console.log("summaryPage =", summaryPage);
+
+    if (!gpPage || !summaryPage) {
+        console.error("Missing page element");
+        return;
+    }
+
+    if (page === "gp") {
+
+        gpPage.style.display = "block";
+        summaryPage.style.display = "none";
+
+    } else {
+
+        gpPage.style.display = "none";
+        summaryPage.style.display = "block";
+
+    }
+}
 
 function copyText(text, button){
     navigator.clipboard.writeText(text);
@@ -318,6 +415,218 @@ row.innerHTML = `
 
 });
 
+}
+
+function formatGPData() {
+
+    const acute =
+        document.getElementById("acuteData").value;
+
+    const repeat =
+        document.getElementById("repeatData").value;
+
+    const medications = [
+        ...processGPSection(acute),
+        ...processGPSection(repeat)
+    ];
+
+    renderMedicationRows(
+        medications,
+        "gpOutput"
+    );
+
+}
+
+function renderMedicationRows(medications, outputId){
+
+    const output = document.getElementById(outputId);
+
+    output.innerHTML = "";
+
+    medications.forEach(med => {
+
+        const row = document.createElement("div");
+        row.className = "result-row";
+
+        row.innerHTML = `
+            <button class="btn btn-danger btn-sm delete-btn me-2">
+                Delete
+            </button>
+
+            <div class="d-flex align-items-center flex-grow-1 medication-container">
+
+                <span class="tick me-2"
+                      style="display:none;color:#198754;font-size:1.4rem;">
+                    ✅
+                </span>
+
+                <div class="medication flex-grow-1"
+                     style="cursor:pointer;"
+                     title="Click to edit">
+                    ${med}
+                </div>
+
+            </div>
+
+            <div class="ms-2">
+
+                <button class="btn btn-primary btn-sm confirm-btn d-none">
+                    Confirm
+                </button>
+
+                <button class="btn btn-success btn-sm copy-btn">
+                    Copy
+                </button>
+
+            </div>
+        `;
+
+        const medicationDiv =
+            row.querySelector(".medication");
+
+        const confirmBtn =
+            row.querySelector(".confirm-btn");
+
+        const copyBtn =
+            row.querySelector(".copy-btn");
+
+        const deleteBtn =
+            row.querySelector(".delete-btn");
+
+        const tick =
+            row.querySelector(".tick");
+
+        let editing = false;
+
+        // Edit by clicking text
+        medicationDiv.addEventListener("click", () => {
+
+            if (editing) return;
+
+            tick.style.display = "none";
+
+            const currentText =
+                medicationDiv.textContent.trim();
+
+            medicationDiv.innerHTML = `
+                <textarea
+                    class="form-control form-control-sm edit-area"
+                    rows="1">${currentText}</textarea>
+            `;
+
+            const textarea =
+                medicationDiv.querySelector(".edit-area");
+
+            textarea.style.height = "auto";
+            textarea.style.height =
+                textarea.scrollHeight + "px";
+
+            textarea.addEventListener("input", function(){
+
+                this.style.height = "auto";
+                this.style.height =
+                    this.scrollHeight + "px";
+
+            });
+
+            copyBtn.classList.add("d-none");
+            confirmBtn.classList.remove("d-none");
+
+            editing = true;
+        });
+
+        // Confirm Edit
+        confirmBtn.addEventListener("click", () => {
+
+            const textarea =
+                medicationDiv.querySelector(".edit-area");
+
+            const newText =
+                textarea.value.trim();
+
+            medicationDiv.textContent = newText;
+
+            confirmBtn.classList.add("d-none");
+            copyBtn.classList.remove("d-none");
+
+            editing = false;
+        });
+
+        // Copy
+        copyBtn.addEventListener("click", () => {
+
+            const text =
+                medicationDiv.textContent.trim();
+
+            navigator.clipboard.writeText(text);
+
+            tick.style.display = "inline";
+
+            const original =
+                copyBtn.textContent;
+
+            copyBtn.textContent = "Copied";
+
+            setTimeout(() => {
+
+                copyBtn.textContent = original;
+
+            }, 1000);
+        });
+
+        // Delete
+        deleteBtn.addEventListener("click", () => {
+
+            row.remove();
+
+        });
+
+        output.appendChild(row);
+
+    });
+
+}
+
+function processGPSection(text){
+
+    text = text.replace(/<[^>]*>/g,'');
+
+    const medications = [];
+
+    // Detect GP copied table format
+    if(text.includes('\t')){
+
+        const rows = text
+            .split(/\r?\n/)
+            .map(x => x.trim())
+            .filter(x => x);
+
+        rows.forEach(row => {
+
+            const cols = row
+                .split('\t')
+                .map(x => x.trim())
+                .filter(x => x);
+
+            if(cols.length >= 4 &&
+                (
+                    cols[0].toUpperCase() === "ACUTE" ||
+                    cols[0].toUpperCase() === "REPEAT"
+                )
+            ){
+
+                medications.push(
+                    cols[2] + " " + cols[3]
+                );
+
+            }
+
+        });
+
+        return medications;
+    }
+
+    return medications;
 }
 
 </script>
