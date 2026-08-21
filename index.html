@@ -120,7 +120,8 @@ body{
 
         <textarea id="acuteData"
                   class="form-control"
-                  rows="3"></textarea>
+                  rows="3"
+                  placeholder="Paste medication data here"></textarea>
     </div>
 
     <div class="mb-3">
@@ -130,7 +131,8 @@ body{
 
         <textarea id="repeatData"
                   class="form-control"
-                  rows="3"></textarea>
+                  rows="3"
+                  placeholder="Paste medication data here"></textarea>
     </div>
 
     <button class="btn btn-success mb-3"
@@ -138,7 +140,156 @@ body{
         Format Both Boxes
     </button>
 
-    <div id="gpOutput"></div>
+    <div class="accordion mt-4" id="gpResultsAccordion">
+
+    <div class="accordion-item">
+        <h2 class="accordion-header">
+            <button class="accordion-button"
+        type="button"
+        data-bs-toggle="collapse"
+        data-bs-target="#acuteResults">
+
+    Acute Medication Results
+
+    <span id="acuteCount"
+          class="badge bg-success ms-2">
+        0
+    </span>
+</button>
+        </h2>
+
+        <div id="acuteResults"
+             class="accordion-collapse collapse show">
+            <div class="accordion-body">
+                <div id="acuteOutput"></div>
+            </div>
+        </div>
+    </div>
+
+    <div class="accordion-item">
+        <h2 class="accordion-header">
+            <button class="accordion-button"
+        type="button"
+        data-bs-toggle="collapse"
+        data-bs-target="#repeatResults">
+
+    Current Repeat Medication Results
+
+    <span id="repeatCount"
+          class="badge bg-primary ms-2">
+        0
+    </span>
+</button>
+        </h2>
+
+        <div id="repeatResults"
+           class="accordion-collapse collapse show">
+            <div class="accordion-body">
+                <div id="repeatOutput"></div>
+            </div>
+        </div>
+<div class="accordion-item">
+
+    <h2 class="accordion-header">
+
+        <button class="accordion-button collapsed"
+                type="button"
+                data-bs-toggle="collapse"
+                data-bs-target="#deletedResults">
+
+            Deleted Items
+
+            <span id="deletedCount"
+                  class="badge bg-danger ms-2">
+                0
+            </span>
+
+        </button>
+
+    </h2>
+
+    <div id="deletedResults"
+         class="accordion-collapse collapse">
+
+        <div class="accordion-body">
+
+            <div class="accordion mb-3">
+
+                <!-- Deleted Acute -->
+                <div class="accordion-item">
+
+                    <h2 class="accordion-header">
+
+                        <button class="accordion-button collapsed"
+                                type="button"
+                                data-bs-toggle="collapse"
+                                data-bs-target="#deletedAcuteResults">
+
+                            Deleted Acute
+
+                            <span id="deletedAcuteCount"
+                                  class="badge bg-warning text-dark ms-2">
+                                0
+                            </span>
+
+                        </button>
+
+                    </h2>
+
+                    <div id="deletedAcuteResults"
+                         class="accordion-collapse collapse">
+
+                        <div class="accordion-body">
+                            <div id="deletedAcuteOutput"></div>
+                        </div>
+
+                    </div>
+
+                </div>
+
+                <!-- Deleted Repeat -->
+                <div class="accordion-item">
+
+                    <h2 class="accordion-header">
+
+                        <button class="accordion-button collapsed"
+                                type="button"
+                                data-bs-toggle="collapse"
+                                data-bs-target="#deletedRepeatResults">
+
+                            Deleted Repeat
+
+                            <span id="deletedRepeatCount"
+                                  class="badge bg-warning text-dark ms-2">
+                                0
+                            </span>
+
+                        </button>
+
+                    </h2>
+
+                    <div id="deletedRepeatResults"
+                         class="accordion-collapse collapse">
+
+                        <div class="accordion-body">
+                            <div id="deletedRepeatOutput"></div>
+                        </div>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+        </div>
+
+    </div>
+
+</div>
+      
+    </div>
+
+</div>
 
 </div>
 
@@ -163,6 +314,12 @@ body{
   
     
 <script>
+
+let acuteMedications = [];
+let repeatMedications = [];
+
+let deletedAcuteMedications = [];
+let deletedRepeatMedications = [];
 
 function confirmSafety() {
 
@@ -417,29 +574,69 @@ row.innerHTML = `
 
 }
 
-function formatGPData() {
+function formatGPData(){
 
-    const acute =
+    const acuteText =
         document.getElementById("acuteData").value;
 
-    const repeat =
+    const repeatText =
         document.getElementById("repeatData").value;
 
-    const medications = [
-        ...processGPSection(acute),
-        ...processGPSection(repeat)
-    ];
+    const acuteMeds =
+        processGPSection(acuteText);
+
+    const repeatMeds =
+        processGPSection(repeatText);
 
     renderMedicationRows(
-        medications,
-        "gpOutput"
+        acuteMeds,
+        "acuteOutput"
     );
+
+    renderMedicationRows(
+        repeatMeds,
+        "repeatOutput"
+    );
+
+    document.getElementById("acuteCount").textContent =
+        acuteMeds.length;
+
+    document.getElementById("repeatCount").textContent =
+        repeatMeds.length;
+
+    new bootstrap.Collapse(
+        document.getElementById("acuteResults"),
+        { toggle: false }
+    ).show();
+
+    new bootstrap.Collapse(
+        document.getElementById("repeatResults"),
+        { toggle: false }
+    ).show();
+
+    acuteMedications = processGPSection(
+        document.getElementById("acuteData").value
+    );
+
+    repeatMedications = processGPSection(
+        document.getElementById("repeatData").value
+    );
+
+    deletedAcuteMedications = [];
+    deletedRepeatMedications = [];
+
+    refreshAllOutputs();
 
 }
 
-function renderMedicationRows(medications, outputId){
+function renderMedicationRows(medications, outputId, type){
 
     const output = document.getElementById(outputId);
+
+    if(!output){
+        console.error("Output container not found:", outputId);
+        return;
+    }
 
     output.innerHTML = "";
 
@@ -481,32 +678,22 @@ function renderMedicationRows(medications, outputId){
             </div>
         `;
 
-        const medicationDiv =
-            row.querySelector(".medication");
-
-        const confirmBtn =
-            row.querySelector(".confirm-btn");
-
-        const copyBtn =
-            row.querySelector(".copy-btn");
-
-        const deleteBtn =
-            row.querySelector(".delete-btn");
-
-        const tick =
-            row.querySelector(".tick");
+        const medicationDiv = row.querySelector(".medication");
+        const confirmBtn = row.querySelector(".confirm-btn");
+        const copyBtn = row.querySelector(".copy-btn");
+        const deleteBtn = row.querySelector(".delete-btn");
+        const tick = row.querySelector(".tick");
 
         let editing = false;
 
-        // Edit by clicking text
+        // Click text to edit
         medicationDiv.addEventListener("click", () => {
 
-            if (editing) return;
+            if(editing) return;
 
             tick.style.display = "none";
 
-            const currentText =
-                medicationDiv.textContent.trim();
+            const currentText = medicationDiv.textContent.trim();
 
             medicationDiv.innerHTML = `
                 <textarea
@@ -535,7 +722,7 @@ function renderMedicationRows(medications, outputId){
             editing = true;
         });
 
-        // Confirm Edit
+        // Confirm edit
         confirmBtn.addEventListener("click", () => {
 
             const textarea =
@@ -562,74 +749,206 @@ function renderMedicationRows(medications, outputId){
 
             tick.style.display = "inline";
 
-            const original =
-                copyBtn.textContent;
+            const original = copyBtn.textContent;
 
             copyBtn.textContent = "Copied";
 
             setTimeout(() => {
-
                 copyBtn.textContent = original;
-
             }, 1000);
+
         });
 
         // Delete
         deleteBtn.addEventListener("click", () => {
 
-            row.remove();
+    if(type === "acute"){
 
-        });
+        const index = acuteMedications.indexOf(med);
 
-        output.appendChild(row);
+    if(index > -1){
+        acuteMedications.splice(index, 1);
+    }
+
+        deletedAcuteMedications.push(med);
+
+    }
+    else{
+
+        const index = repeatMedications.indexOf(med);
+
+    if(index > -1){
+        repeatMedications.splice(index, 1);
+}
+
+        deletedRepeatMedications.push(med);
+
+    }
+
+    refreshAllOutputs();
+});
+
+              output.appendChild(row);
 
     });
 
 }
 
-function processGPSection(text){
-
-    text = text.replace(/<[^>]*>/g,'');
+function processGPSection(text) {
 
     const medications = [];
 
-    // Detect GP copied table format
-    if(text.includes('\t')){
+    const rows = text
+        .split(/\r?\n/)
+        .map(x => x.trim())
+        .filter(x => x);
 
-        const rows = text
-            .split(/\r?\n/)
-            .map(x => x.trim())
-            .filter(x => x);
+    rows.forEach(row => {
 
-        rows.forEach(row => {
+        const cols = row
+            .split(/\t+/)
+            .map(x => x.trim());
 
-            const cols = row
-                .split('\t')
-                .map(x => x.trim())
-                .filter(x => x);
+        if (cols.length < 4) return;
 
-            if(cols.length >= 4 &&
-                (
-                    cols[0].toUpperCase() === "ACUTE" ||
-                    cols[0].toUpperCase() === "REPEAT"
-                )
-            ){
+        const recordType = cols[0].toUpperCase();
 
-                medications.push(
-                    cols[2] + " " + cols[3]
-                );
+        if (
+            recordType !== "ACUTE" &&
+            recordType !== "REPEAT"
+        ) {
+            return;
+        }
 
-            }
+        const medication = cols[2];
+        const direction = cols[3];
 
-        });
+        if (!medication || !direction) return;
 
-        return medications;
-    }
+        medications.push(
+            `${medication} ${direction}`
+        );
+
+    });
 
     return medications;
 }
 
-</script>
+function refreshAllOutputs(){
 
+    renderMedicationRows(
+        acuteMedications,
+        "acuteOutput",
+        "acute"
+    );
+
+    renderMedicationRows(
+        repeatMedications,
+        "repeatOutput",
+        "repeat"
+    );
+
+    renderDeletedRows(
+        deletedAcuteMedications,
+        "deletedAcuteOutput",
+        "acute"
+    );
+
+    renderDeletedRows(
+        deletedRepeatMedications,
+        "deletedRepeatOutput",
+        "repeat"
+    );
+
+    updateCounts();
+
+}
+
+
+function updateCounts(){
+
+    document.getElementById("acuteCount")
+        .textContent = acuteMedications.length;
+
+    document.getElementById("repeatCount")
+        .textContent = repeatMedications.length;
+
+    document.getElementById("deletedAcuteCount")
+        .textContent = deletedAcuteMedications.length;
+
+    document.getElementById("deletedRepeatCount")
+        .textContent = deletedRepeatMedications.length;
+
+    document.getElementById("deletedCount")
+        .textContent =
+            deletedAcuteMedications.length +
+            deletedRepeatMedications.length;
+
+}
+
+function renderDeletedRows(medications,outputId,type){
+
+    const output =
+        document.getElementById(outputId);
+
+    output.innerHTML = "";
+
+    medications.forEach(med => {
+
+        const row =
+            document.createElement("div");
+
+        row.className =
+            "result-row";
+
+        row.innerHTML = `
+
+            <button class="btn btn-secondary btn-sm undo-btn">
+                Undo Delete
+            </button>
+
+            <div class="flex-grow-1 ms-2">
+                ${med}
+            </div>
+
+        `;
+
+        row.querySelector(".undo-btn")
+            .addEventListener("click", () => {
+
+                if(type === "acute"){
+
+                    deletedAcuteMedications =
+                        deletedAcuteMedications
+                        .filter(x => x !== med);
+
+                    acuteMedications.push(med);
+
+                }
+                else{
+
+                    deletedRepeatMedications =
+                        deletedRepeatMedications
+                        .filter(x => x !== med);
+
+                    repeatMedications.push(med);
+
+                }
+
+                refreshAllOutputs();
+
+            });
+
+        output.appendChild(row);
+
+    });
+}
+
+      
+
+
+      </script>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/js/bootstrap.bundle.min.js" integrity="sha384-FKyoEForCGlyvwx9Hj09JcYn3nv7wiPVlz7YYwJrWVcXK/BmnVDxM+D2scQbITxI" crossorigin="anonymous"></script>
 </body>
 </html>
