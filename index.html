@@ -764,26 +764,36 @@ function renderMedicationRows(medications, outputId, type){
 
     if(type === "acute"){
 
-        const index = acuteMedications.indexOf(med);
+    const index = acuteMedications.indexOf(med);
 
     if(index > -1){
+
+        deletedAcuteMedications.push({
+            text: med,
+            originalIndex: index
+        });
+
         acuteMedications.splice(index, 1);
-    }
-
-        deletedAcuteMedications.push(med);
 
     }
-    else{
 
-        const index = repeatMedications.indexOf(med);
+}
+else{
+
+    const index = repeatMedications.indexOf(med);
 
     if(index > -1){
-        repeatMedications.splice(index, 1);
-}
 
-        deletedRepeatMedications.push(med);
+        deletedRepeatMedications.push({
+            text: med,
+            originalIndex: index
+        });
+
+        repeatMedications.splice(index, 1);
 
     }
+
+}
 
     refreshAllOutputs();
 });
@@ -811,14 +821,16 @@ function processGPSection(text) {
 
         if (cols.length < 4) return;
 
-        const recordType = cols[0].toUpperCase();
+        const recordType = cols[0]
+    .toUpperCase()
+    .trim();
 
-        if (
-            recordType !== "ACUTE" &&
-            recordType !== "REPEAT"
-        ) {
-            return;
-        }
+if (
+    !recordType.startsWith("ACUTE") &&
+    !recordType.startsWith("REPEAT")
+){
+    return;
+}
 
         const medication = cols[2];
         const direction = cols[3];
@@ -908,7 +920,7 @@ function renderDeletedRows(medications,outputId,type){
             </button>
 
             <div class="flex-grow-1 ms-2">
-                ${med}
+                ${med.text}
             </div>
 
         `;
@@ -922,7 +934,10 @@ function renderDeletedRows(medications,outputId,type){
                         deletedAcuteMedications
                         .filter(x => x !== med);
 
-                    acuteMedications.push(med);
+                    acuteMedications.splice(med.
+                                            originalIndex,
+                                            0,med.text
+                    );
 
                 }
                 else{
@@ -931,7 +946,10 @@ function renderDeletedRows(medications,outputId,type){
                         deletedRepeatMedications
                         .filter(x => x !== med);
 
-                    repeatMedications.push(med);
+                    repeatMedications.splice(med.
+                                             originalIndex,
+                                             0,med.text
+                    );
 
                 }
 
